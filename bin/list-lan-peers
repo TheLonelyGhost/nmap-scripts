@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+CURRENT_DIR="$(dirname -- "$0" )"
+
+info="$("${CURRENT_DIR:-.}/get-lan-ip")"
+iface="$(printf '%s\n' "$info" | cut -d' ' -f1)"
+ipaddr="$(printf '%s\n' "$info" | cut -d' ' -f2)"
+
+get-target-pattern-few() {
+  local ipaddr="$1"
+
+  # Confirm it's private IPv4 space
+  case "$ipaddr" in
+    192.168.*)
+      ;;
+    172.{16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31}.*)
+      ;;
+    10.*)
+      ;;
+    *)
+      printf '>>> ERROR: %s\n' 'LAN is not in the private IPv4 address space' 1>&2
+      exit 1
+      ;;
+  esac
+
+  printf '%s\n' "$ipaddr" | awk '{ split($1, a, "."); print a[1] "." a[2] "." a[3] ".0-255" }'
+}
+
+get-target-pattern-many() {
+  local ipaddr="$1"
+
+  case "$ipaddr" in
+    192.168.*)
+      printf '192.168.0-255.0-255\n'
+      ;;
+    172.{16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31}.*)
+      printf '172.16-31.0-255.0-255\n'
+      ;;
+    10.*)
+      printf '10.0-255.0-255.0-255\n'
+      ;;
+    *)
+      printf '>>> ERROR: %s\n' 'LAN is not in the private IPv4 address space' 1>&2
+      exit 1
+      ;;
+  esac
+}
+target_pattern="$(get-target-pattern-few "$ipaddr")"
+
+if [ $# -gt 0 ]; then
+  case "$1" in
+    cons*|slim|few)  # conservative
+      target_pattern="$(get-target-pattern-few "$ipaddr")"
+      ;;
+    lib*|all|open|many)  # liberal
+      target_pattern="$(get-target-pattern-many "$ipaddr")"
+      ;;
+  esac
+fi
+
+# printf 'iface "%s", targets "%s"\n' "${iface}" "${target_pattern}"
+
+sudo nmap -v -sL -T1 --spoof-mac Apple -e "$iface" "${target_pattern}"

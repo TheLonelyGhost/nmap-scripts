@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+port="$1"
+target="${2:-localhost}"
+
+if nc -z "$target" "$port"; then
+  printf '>>> Yep, port %s is open for %s\n' "$port" "$target"
+else
+  ret="$?"
+  printf '>>> Nope, port %s is closed for %s\n' "$port" "$target"
+  exit "$ret"
+fi
