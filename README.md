@@ -8,11 +8,11 @@ Most scripts will live in the `bin/` directory of the repository. Just add it to
 
 Using netcat (`nc`), this checks if the given port on the given IP is open.
 
-## `get-lan-ip`
+## `lan-ip`
 
 Prints out any and all non-virtual network interfaces using the `ip` command and `sysfs` (note for linux-based systems). Passing an argument of `ip` or `iface`/`interface` to this will print just the IPv4 or interface name, respectively.
 
-## `list-lan-peers`
+## `lan-peers`
 
 Find other hosts on the same subnet of a private IP address space. The only argument is how open you want the list of IPv4 addresses to be. `open`/`all`/`many` will scan the full private IP address space, `few`/`conservative`/`slim` will scan all IPv4 addresses in the last octet.
 
