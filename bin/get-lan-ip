@@ -1,38 +1,52 @@
 #!/usr/bin/env bash
 
+CURRENT_DIR="$(dirname -- "$0" )"
+. "${CURRENT_DIR}/../share/nmap-scripts.sh"
+
+usage() {
+  cat <<EOH
+Prints all physical network interfaces and their associated IPv4
+addresses. Primed for use with \`cut'.
+
+Usage:  $(basename -- "$0") [-h] [interface|ip]
+
+  ip          Just show the IPv4 address(es) assigned
+
+  interface   Just show the physical interface name(s)
+EOH
+}
+
 set -euo pipefail
+
+if [ $# -gt 0 ]; then
+  if [ "$1" = '-h' ]; then
+    usage
+    exit 0
+  fi
+fi
 
 # Find the interfaces that have private IP addresses assigned:
 # - 192.168.x.x
 # - 10.x.x.x
 # - 172.16.x.x to 172.31.x.x
 
-get-physical-ifaces() {
-  local iface
-  iface=""
-
-  for nm in /sys/class/net/*; do
-    if readlink "$nm" | grep -qv 'virtual' &>/dev/null; then
-      iface="$(basename -- "$nm")"
-      # ip -4 -o address show dev "$iface" | awk '{ split($4, 
-      printf '%s\n' "$iface"
-    fi
-  done
-}
-
-# shellcheck disable=2016
-awk_printer='$2 " " a[1]'
-
 if [ $# -gt 0 ]; then
   case "$1" in
-    ip*|-q|--quiet)
+    ip*)
       awk_printer='a[1]'
       ;;
-    iface|interface)
+    iface*|interface*)
       # shellcheck disable=2016
       awk_printer='$2'
       ;;
+    *)
+      # shellcheck disable=2016
+      awk_printer='$2 " " a[1]'
+      ;;
   esac
+else
+  # shellcheck disable=2016
+  awk_printer='$2 " " a[1]'
 fi
 
 get-physical-ifaces | xargs -I{} ip -4 -o address show dev '{}' | awk '{ split($4, a, "/"); print '"${awk_printer}"' }'

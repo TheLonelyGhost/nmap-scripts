@@ -1,14 +1,37 @@
 #!/usr/bin/env bash
 
+CURRENT_DIR="$(dirname -- "$0" )"
+. "${CURRENT_DIR}/../share/nmap-scripts.sh"
+
+usage() {
+  cat <<EOH
+Determines of the designated port is currently open.
+
+Usage:  $(basename -- "$0") [-h] <PORT> [<TARGET>]
+
+  PORT    This is the port number to be checked
+
+  TARGET  This is the IP address/hostname of the target
+          machine to be checked. Defaults to localhost.
+EOH
+}
+
 set -euo pipefail
+
+if [ $# -gt 0 ]; then
+  if [ "$1" = '-h' ]; then
+    usage
+    exit 0
+  fi
+fi
 
 port="$1"
 target="${2:-localhost}"
 
 if nc -z "$target" "$port"; then
-  printf '>>> Yep, port %s is open for %s\n' "$port" "$target"
+  log "Yep, port ${port} is open for ${target}"
 else
   ret="$?"
-  printf '>>> Nope, port %s is closed for %s\n' "$port" "$target"
+  log "Nope, port ${port} is closed for ${target}"
   exit "$ret"
 fi
