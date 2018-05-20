@@ -28,7 +28,7 @@ if [ $# -gt 0 ]; then
   fi
 fi
 
-info="$("${CURRENT_DIR}/get-lan-ip all")"
+info="$("${CURRENT_DIR}/get-lan-ip" all)"
 iface="$(printf '%s\n' "$info" | cut -d' ' -f1)"
 ipaddr="$(printf '%s\n' "$info" | cut -d' ' -f2)"
 
