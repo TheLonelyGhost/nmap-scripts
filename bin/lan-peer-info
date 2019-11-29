@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+
+CURRENT_DIR="$(dirname -- "$0" )"
+. "${CURRENT_DIR}/../share/nmap-scripts.sh"
+
+usage() {
+  cat <<EOH
+Lists all IPv4 addresses and ports open for peers on the LAN. Must be in
+private IPv4 address space or this command _will_ fail. Be a good netizen:
+don't port scan on the WAN. The main argument is positional.
+
+Usage:  $(basename -- "$0") [-h] [few|many|all|conservative]
+
+  few, conservative   scan all IPv4 addresses where last octet is 0-255. This
+                      is the default choice. Example: all of 10.12.0.x
+
+  many, all           scan all IPv4 addresses in that IETF-sanctioned, private
+                      IPv4 space. Example: all of 10.x.x.x
+EOH
+}
+
+set -euo pipefail
+
+if [ $# -gt 0 ]; then
+  if [ "$1" = '-h' ]; then
+    usage
+    exit 0
+  fi
+fi
+
+info="$("${CURRENT_DIR}/lan-ip" all)"
+iface="$(printf '%s\n' "$info" | cut -d' ' -f1)"
+ipaddr="$(printf '%s\n' "$info" | cut -d' ' -f2)"
+
+target_pattern="$(get-target-pattern-few "$ipaddr")"
+
+if [ $# -gt 0 ]; then
+  case "$1" in
+    cons*|slim|few)  # conservative
+      target_pattern="$(get-target-pattern-few "$ipaddr")"
+      ;;
+    lib*|all|open|many)  # liberal
+      target_pattern="$(get-target-pattern-many "$ipaddr")"
+      ;;
+    *)
+      target_pattern="$(get-target-pattern-few "$ipaddr")"
+      ;;
+  esac
+else
+  target_pattern="$(get-target-pattern-few "$ipaddr")"
+fi
+
+sudo nmap -v -sL -T1 --spoof-mac Apple -e "$iface" "${target_pattern}"
